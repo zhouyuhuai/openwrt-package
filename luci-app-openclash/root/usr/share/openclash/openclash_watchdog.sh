@@ -10,7 +10,7 @@ enable_redirect_dns=$(uci -q get openclash.config.enable_redirect_dns)
 dns_port=$(uci -q get openclash.config.dns_port)
 disable_masq_cache=$(uci -q get openclash.config.disable_masq_cache)
 cfg_update_interval=$(uci -q get openclash.config.config_update_interval)
-log_size=$(uci -q get openclash.config.log_size || 1024)
+log_size=$(uci -q get openclash.config.log_size || echo 1024)
 core_type=$(uci -q get openclash.config.core_type)
 _koolshare=$(cat /usr/lib/os-release 2>/dev/null |grep OPENWRT_RELEASE 2>/dev/null |grep -i koolshare 2>/dev/null)
 CRASH_NUM=0
@@ -76,6 +76,7 @@ fi
 ## Log File Size Manage:
     LOGSIZE=`ls -l /tmp/openclash.log |awk '{print int($5/1024)}'`
     if [ "$LOGSIZE" -gt "$log_size" ]; then
+       : > /tmp/openclash.log
        LOG_OUT "Watchdog: Log Size Limit, Clean Up All Log Records..."
     fi
 
