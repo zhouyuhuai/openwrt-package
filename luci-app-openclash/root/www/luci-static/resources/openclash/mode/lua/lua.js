@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: https://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/5/LICENSE
 
 // LUA mode. Ported to CodeMirror 2 from Franciszek Wawrzak's
 // CodeMirror 1 mode.
@@ -85,7 +85,23 @@ CodeMirror.defineMode("lua", function(config, parserConfig) {
     if (ch == "【") {
       stream.eatWhile(/[^】]/);
       stream.eat("】");
-      return "string";
+      return "string-2";
+    }
+    if (((ch == "提" && stream.eat("示")) || (ch == "T" && stream.eat("i") && stream.eat("p"))) && (stream.eat(":") || stream.eat("："))) {
+      stream.skipToEnd();
+      return "tip";
+    }
+    if (((ch == "守" && stream.eat("护") && stream.eat("程") && stream.eat("序")) || (ch == "W" && stream.eat("a") && stream.eat("t") && stream.eat("c") && stream.eat("h") && stream.eat("d") && stream.eat("o") && stream.eat("g"))) && (stream.eat(":") || stream.eat("："))) {
+      stream.skipToEnd();
+      return "watchdog";
+    }
+    if (((ch == "警" && stream.eat("告")) || (ch == "W" && stream.eat("a") && stream.eat("r") && stream.eat("n") && stream.eat("i") && stream.eat("n") && stream.eat("g"))) && (stream.eat(":") || stream.eat("："))) {
+      stream.skipToEnd();
+      return "warn";
+    }
+    if (((ch == "错" && stream.eat("误")) || (ch == "E" && stream.eat("r") && stream.eat("r") && stream.eat("o") && stream.eat("r"))) && (stream.eat(":") || stream.eat("："))) {
+      stream.skipToEnd();
+      return "error";
     }
     if (ch == "\"" || ch == "'")
       return (state.cur = string(ch))(stream, state);
@@ -138,7 +154,7 @@ CodeMirror.defineMode("lua", function(config, parserConfig) {
       var word = stream.current();
       //if (style == "variable") {
       //  if (keywords.test(word)) style = "keyword";
-      //  if (builtins.test(word)) style = "builtin";
+      //  else if (builtins.test(word)) style = "builtin";
       //  else if (specials.test(word)) style = "variable-2";
       //}
       if ((style != "comment") && (style != "string")){

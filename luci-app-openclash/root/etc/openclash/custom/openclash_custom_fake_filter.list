@@ -12,6 +12,7 @@ time.*.com
 time.*.gov
 time.*.edu.cn
 time.*.apple.com
+time-ios.apple.com
 time1.*.com
 time2.*.com
 time3.*.com
@@ -64,11 +65,11 @@ music.migu.cn
 #win10本地连接检测
 +.msftconnecttest.com
 +.msftncsi.com
-msftconnecttest.com
-msftncsi.com
-#QQ快捷登录
+#QQ登录
 localhost.ptlogin2.qq.com
 localhost.sec.qq.com
++.qq.com
++.tencent.com
 #Game
 #Nintendo Switch
 +.srv.nintendo.net
@@ -123,3 +124,15 @@ ff.dorado.sdo.com
 *.mcdn.bilivideo.cn
 #Disney Plus
 +.media.dssott.com
+#shark007 Codecs 
+shark007.net
+#Mijia
+Mijia Cloud
+#招商银行
++.cmbchina.com
++.cmbimg.com
+#AdGuard
+local.adguard.org
+#迅雷
++.sandai.net
++.n0808.com

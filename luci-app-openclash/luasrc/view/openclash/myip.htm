@@ -11,14 +11,14 @@
     <link rel="dns-prefetch" href="//api-ipv4.ip.sb">
     <link rel="dns-prefetch" href="//api.ipify.org">
     <link rel="dns-prefetch" href="//api.ttt.sh">
-    <link rel="dns-prefetch" href="//api.skk.moe">
+    <link rel="dns-prefetch" href="//qqwry.api.skk.moe">
     <link rel="dns-prefetch" href="//d.skk.moe">
     <link rel="preconnect" href="https://www.taobao.com/help/getip.php">
     <link rel="preconnect" href="https://whois.pconline.com.cn/ipJson.jsp">
     <link rel="preconnect" href="https://api-ipv4.ip.sb">
     <link rel="preconnect" href="https://api.ipify.org">
     <link rel="preconnect" href="https://api.ttt.sh">
-    <link rel="preconnect" href="https://api.skk.moe">
+    <link rel="preconnect" href="https://qqwry.api.skk.moe">
     <link rel="preconnect" href="https://d.skk.moe">
     <meta name="referrer" content="no-referrer">
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,minimal-ui">
@@ -26,7 +26,6 @@
     <style>
         .ip-title {
             font-weight: bold;
-            color: #444;
             font-size:15px;
             display: inline-block;
             width: 25%;
@@ -37,10 +36,9 @@
         
         .ip-state_title {
             font-weight: bold;
-            color: #444;
             font-size:15px;
             display: inline-block;
-            width: 70%;
+            width: 42%;
             vertical-align:bottom;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -48,12 +46,11 @@
         }
         
         .ip-result {
-            color: #444;
             font-size:16px;
-            margin:0px 0px 0px 10%;
+            margin:0px 0px 0px 5%;
             white-space: nowrap;  /*强制span不换行*/
             display: inline-block;  /*将span当做块级元素对待*/
-            width: 29%;  /*限制宽度*/
+            width: 25%;  /*限制宽度*/
             overflow: hidden;  /*超出宽度部分隐藏*/
             text-overflow: ellipsis;  /*超出部分以点号代替*/
             vertical-align:bottom;
@@ -61,12 +58,11 @@
         }
         
         .ip-geo {
-            color: #444;
             font-size:15px;
             line-height:20px;
             white-space: nowrap;  /*强制span不换行*/
             display: inline-block;  /*将span当做块级元素对待*/
-            width: 25%;  /*限制宽度*/
+            width: 35%;  /*限制宽度*/
             overflow: hidden;  /*超出宽度部分隐藏*/
             text-overflow: ellipsis;  /*超出部分以点号代替*/
             text-align: right;
@@ -75,7 +71,6 @@
         }
         
         .ip-checking {
-            color: #444;
             font-size:15px;
             line-height:20px;
             display: inline-block;
@@ -98,6 +93,19 @@
             overflow: hidden;
             text-overflow: ellipsis;
             text-align: left;
+            transform:translateY(12%);
+        }
+        
+        .sk-load-success {
+            font-size:15px;
+            line-height:20px;
+            display: inline-block;
+            vertical-align:bottom;
+            width: 18%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: right;
             transform:translateY(12%);
         }
 
@@ -139,16 +147,16 @@
         <div style="width: 49%">
             <h3 style="margin: 10px 0 10px 5%"><%:Website Access Check%></h3>
             <p style="margin: 10px 0 10px 5%">
-                <span class="ip-state_title"><%:Baidu Search%>:</span><span id="http-baidu"></span>
+                <span class="ip-state_title"><%:Baidu Search%>:</span><span id="http-baidu"></span><span id="ldtime-baidu"></span>
             </p>
             <p style="margin: 10px 0 10px 5%">
-                <span class="ip-state_title"><%:NetEase Music%>:</span><span id="http-163"></span>
+                <span class="ip-state_title"><%:NetEase Music%>:</span><span id="http-163"></span><span id="ldtime-163"></span>
             </p>
             <p style="margin: 10px 0 10px 5%">
-                <span class="ip-state_title">GitHub:</span><span id="http-github"></span>
+                <span class="ip-state_title">GitHub:</span><span id="http-github"></span><span id="ldtime-github"></span>
             </p>
             <p style="margin: 10px 0 10px 5%">
-                <span class="ip-state_title">YouTube:</span><span id="http-youtube"></span>
+                <span class="ip-state_title">YouTube:</span><span id="http-youtube"></span><span id="ldtime-youtube"></span>
             </p>
         </div>
     </div>
@@ -195,21 +203,23 @@
                     throw error;
                 }),
             parseIPIpip: (ip, elID) => {
-            	  var meta = document.createElement('meta');
-            	  meta.name = "referrer";
-            	  meta.content = "no-referrer-when-downgrade";
-            	  document.getElementsByTagName('head')[0].appendChild(meta);
-            	  
-                IP.get(`https://qqwry.api.skk.moe/${ip}`, 'json')
-                    .then(resp => {
-                        $$.getElementById(elID).innerHTML = resp.data.geo;
-                        //$$.getElementById(elID).innerHTML = `${resp.data.country} ${resp.data.regionName} ${resp.data.city} ${resp.data.isp}`;
-                    })
-                    
-                var meta = document.createElement('meta');
-            	  meta.name = "referrer";
-            	  meta.content = "no-referrer";
-            	  document.getElementsByTagName('head')[0].appendChild(meta); 
+                const v4 = '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]\\d|\\d)){3}';
+                const v4Exact = new RegExp(`^${v4}$`);
+                const anonymizedIp = (() => {
+                    if (v4Exact.test(ip)) {
+                        const [a, b, c] = ip.split('.');
+                        return `${a}.${b}.${c}.0`;
+                    }
+                    return ip;
+                })();
+
+                fetch(`https://qqwry.api.skk.moe/${anonymizedIp}`, {
+                referrerPolicy: 'no-referrer-when-downgrade',
+                }).then(r => r.json())
+                .then(resp => {
+                    $$.getElementById(elID).innerHTML = resp.geo;
+                    //$$.getElementById(elID).innerHTML = `${resp.data.country} ${resp.data.regionName} ${resp.data.city} ${resp.data.isp}`;
+                })
             },
             getIpipnetIP: () => {
                 IP.get(window.location.protocol+`//myip.ipip.net/?z=${random}`, 'text')
@@ -237,11 +247,11 @@
             getIpifyIP: () => {
                 IP.get(`https://api.ipify.org/?format=json&z=${random}`, 'json')
                 .then(resp => {
-                $$.getElementById('ip-ipify').innerHTML = resp.data.ip;
-                return resp.data.ip;
+                	$$.getElementById('ip-ipify').innerHTML = resp.data.ip;
+                	return resp.data.ip;
                 })
                 .then(ip => {
-                IP.parseIPIpip(ip, 'ip-ipify-geo');
+                	IP.parseIPIpip(ip, 'ip-ipify-geo');
                 })
             }
         };
@@ -251,102 +261,106 @@
         $$.getElementById('http-github').innerHTML = '<span class="ip-checking"><%:Testing...%></span>';
         $$.getElementById('http-youtube').innerHTML = '<span class="ip-checking"><%:Testing...%></span>';
         let HTTP = {
-            checker: (domain, cbElID) => {
+            checker: (domain, cbElID, cbLoID) => {
                 let img = new Image;
+                let img_start_time = (+new Date());
                 let timeout = setTimeout(() => {
                     img.onerror = img.onload = null;
+                    $$.getElementById(cbLoID).style.display = 'none';
                     $$.getElementById(cbElID).innerHTML = '<span class="sk-text-error"><%:Access Timed Out%></span>'
                 }, 5000);
 
                 img.onerror = () => {
                     clearTimeout(timeout);
+                    $$.getElementById(cbLoID).style.display = 'none';
                     $$.getElementById(cbElID).innerHTML = '<span class="sk-text-error"><%:Access Denied%></span>'
                 }
 
                 img.onload = () => {
                     clearTimeout(timeout);
+                    let img_load_time = (new Date())- img_start_time;
+                    if ($$.getElementById(cbLoID).style.display == 'none') {
+                    	$$.getElementById(cbLoID).style.display = '';
+                    }
+                    if (img_load_time <= 500) {
+                    	$$.getElementById(cbLoID).innerHTML = '<span class="sk-load-success">' + img_load_time + ' ms</span>'
+                    	$$.getElementById(cbLoID).style.color = '#32b643';
+                    }
+                    else if (img_load_time > 500 && img_load_time <= 1000) {
+                    	$$.getElementById(cbLoID).innerHTML = '<span class="sk-load-success">' + img_load_time + ' ms</span>'
+                    	$$.getElementById(cbLoID).style.color = 'orange';
+                    }
+                    else {
+                    	$$.getElementById(cbLoID).innerHTML = '<span class="sk-load-success">' + img_load_time + ' ms</span>'
+                    	$$.getElementById(cbLoID).style.color = '#e85600';
+                    }
                     $$.getElementById(cbElID).innerHTML = '<span class="sk-text-success"><%:Access Normal%></span>'
                 }
 
                 img.src = `https://${domain}/favicon.ico?${+(new Date)}`
             },
             runcheck: () => {
-                HTTP.checker('www.baidu.com', 'http-baidu');
-                HTTP.checker('s1.music.126.net/style', 'http-163');
-                HTTP.checker('github.com', 'http-github');
-                HTTP.checker('www.youtube.com', 'http-youtube');
+                HTTP.checker('www.baidu.com', 'http-baidu', 'ldtime-baidu');
+                HTTP.checker('s1.music.126.net/style', 'http-163', 'ldtime-163');
+                HTTP.checker('github.com', 'http-github', 'ldtime-github');
+                HTTP.checker('www.youtube.com', 'http-youtube', 'ldtime-youtube');
             }
         };
 
-	      HTTP.runcheck();
-	      IP.getIpifyIP();
-	      //IP.getSpeedIP();
-	      
-	      function getPcolIP(data){
-                let pcisp = data.addr.split(' ');
-                $$.getElementById('ip-pcol').innerHTML = data.ip;
-                $$.getElementById('ip-pcol-geo').innerHTML = `${data.pro}${data.city}${data.region} ${pcisp[1]}`;
+
+        function getPcolIP(data){
+            let pcisp = data.addr.split(' ');
+            $$.getElementById('ip-pcol').innerHTML = data.ip;
+            $$.getElementById('ip-pcol-geo').innerHTML = `${data.pro}${data.city}${data.region} ${pcisp[1]}`;
         };
 
         function getIpsbIP(data){
-                $$.getElementById('ip-ipsb').innerHTML = data.ip;
-                IP.parseIPIpip(data.ip, 'ip-ipsb-geo');
+            $$.getElementById('ip-ipsb').innerHTML = data.ip;
+            IP.parseIPIpip(data.ip, 'ip-ipsb-geo');
         };
         
         function ipCallback(data){
-                $$.getElementById('ip-taobao').innerHTML = data.ip;
-                IP.parseIPIpip(data.ip, 'ip-taobao-geo');
+            $$.getElementById('ip-taobao').innerHTML = data.ip;
+            IP.parseIPIpip(data.ip, 'ip-taobao-geo');
         };
-
-	      window.onload=myip_Load();
 	      
-	      function myip_Load()
-	      {
-	         var pcip = document.getElementsByTagName('HEAD').item(0);
-	         var pcipScript= document.createElement("script");
-	         pcipScript.defer = "defer";
-	         pcipScript.src='https://whois.pconline.com.cn/ipJson.jsp?callback=getPcolIP';
-	         pcip.appendChild(pcipScript);
-	         
-	         var sbip = document.getElementsByTagName('HEAD').item(0);
-	         var sbipScript= document.createElement("script");
-	         sbipScript.defer = "defer";
-	         sbipScript.src='https://api-ipv4.ip.sb/jsonip?callback=getIpsbIP';
-	         sbip.appendChild(sbipScript);
-	         
-	         var tbip = document.getElementsByTagName('HEAD').item(0);
-	         var tbipScript= document.createElement("script");
-	         tbipScript.defer = "defer";
-	         tbipScript.src='https://www.taobao.com/help/getip.php?callback=ipCallback';
-	         tbip.appendChild(sbipScript);
-	         
-	         const $$ = document;
-	         random = parseInt(Math.random() * 100000000);
-		       HTTP.runcheck();
-		       IP.getIpifyIP();
-		       //IP.getSpeedIP();
-		       
-           function getPcolIP(data){
-                let pcisp = data.addr.split(' ');
-                $$.getElementById('ip-pcol').innerHTML = data.ip;
-                $$.getElementById('ip-pcol-geo').innerHTML = `${data.pro}${data.city}${data.region} ${pcisp[1]}`;
-           };
+        function myip_Load()
+        {
+            var pcip = document.getElementsByTagName('HEAD').item(0);
+            var pcipScript= document.createElement("script");
+            var random = parseInt(Math.random() * 100000000);
+            pcipScript.defer = "defer";
+            pcipScript.src=`https://whois.pconline.com.cn/ipJson.jsp?callback=getPcolIP&z=${random}`;
+            pcip.appendChild(pcipScript);
+            
+            var sbip = document.getElementsByTagName('HEAD').item(0);
+            var sbipScript= document.createElement("script");
+            sbipScript.defer = "defer";
+            sbipScript.src='https://api-ipv4.ip.sb/jsonip?callback=getIpsbIP';
+            sbip.appendChild(sbipScript);
+            
+            var tbip = document.getElementsByTagName('HEAD').item(0);
+            var tbipScript= document.createElement("script");
+            tbipScript.defer = "defer";
+            tbipScript.src='https://www.taobao.com/help/getip.php?callback=ipCallback';
+            tbip.appendChild(sbipScript);
+            
+            //HTTP.runcheck();
+            IP.getIpifyIP();
+            //IP.getSpeedIP();
+        }
 
-		       function getIpsbIP(data){
-                $$.getElementById('ip-ipsb').innerHTML = data.ip;
-                IP.parseIPIpip(data.ip, 'ip-ipsb-geo');
-		       };
-		       
-		       function ipCallback(data){
-                $$.getElementById('ip-taobao').innerHTML = data.ip;
-                IP.parseIPIpip(data.ip, 'ip-taobao-geo');
-		       };
-
-       	   setTimeout("myip_Load()",1000*10);
-		   }
+        HTTP.runcheck();
+        IP.getIpifyIP();
+        //IP.getSpeedIP();
+        setInterval("HTTP.runcheck()", Math.floor(Math.random()*(10-5+1)+5)*1000);
+        setInterval("myip_Load()", Math.floor(Math.random()*(30-10+1)+10)*1000);
+        
 
     </script>
-    <script defer="defer" src="https://whois.pconline.com.cn/ipJson.jsp?callback=getPcolIP"></script>
+    <script type="text/javascript">
+        document.write('<script defer="defer" src="https://whois.pconline.com.cn/ipJson.jsp?callback=getPcolIP&z='+parseInt(Math.random() * 100000000)+'" type="text/javascript"><\/script>');
+    </script>
     <script defer="defer" src="https://api-ipv4.ip.sb/jsonip?callback=getIpsbIP"></script>
     <script defer="defer" src="https://www.taobao.com/help/getip.php?callback=ipCallback"></script>
 </html>

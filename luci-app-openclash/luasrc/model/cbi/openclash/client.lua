@@ -28,7 +28,7 @@ end
 function config_check(CONFIG_FILE)
 	local yaml = fs.isfile(CONFIG_FILE)
 	if yaml then
-		yaml = SYS.exec(string.format('ruby -ryaml -E UTF-8 -e "puts YAML.load_file(\'%s\')" 2>/dev/null',CONFIG_FILE))
+		yaml = SYS.exec(string.format('ruby -ryaml -rYAML -I "/usr/share/openclash" -E UTF-8 -e "puts YAML.load_file(\'%s\')" 2>/dev/null',CONFIG_FILE))
 		if yaml ~= "false\n" and yaml ~= "" then
 			return "Config Normal"
 		else
@@ -66,12 +66,13 @@ form.reset = false
 form.submit = false
 tb=form:section(Table,e)
 st=tb:option(DummyValue,"state",translate("State"))
-st.template="openclash/cfg_check"
 nm=tb:option(DummyValue,"name",translate("Config Alias"))
+sb=tb:option(DummyValue,"name",translate("Subscription Info"))
 mt=tb:option(DummyValue,"mtime",translate("Update Time"))
 ck=tb:option(DummyValue,"check",translate("Grammar Check"))
+st.template="openclash/cfg_check"
 ck.template="openclash/cfg_check"
-nm.template="openclash/sub_info_show"
+sb.template="openclash/sub_info_show"
 
 btnis=tb:option(Button,"switch",translate("Switch Config"))
 btnis.template="openclash/other_button"

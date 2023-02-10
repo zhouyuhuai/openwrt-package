@@ -15,13 +15,13 @@ del_lock() {
 ruby_read_hash()
 {
    RUBY_YAML_PARSE="Thread.new{Value = $1; puts Value$2}.join"
-   ruby -ryaml -E UTF-8 -e "$RUBY_YAML_PARSE" 2>/dev/null
+   ruby -ryaml -rYAML -I "/usr/share/openclash" -E UTF-8 -e "$RUBY_YAML_PARSE" 2>/dev/null
 }
 
 ruby_read()
 {
    RUBY_YAML_PARSE="Thread.new{Value = YAML.load_file('$1'); puts Value$2}.join"
-   ruby -ryaml -E UTF-8 -e "$RUBY_YAML_PARSE" 2>/dev/null
+   ruby -ryaml -rYAML -I "/usr/share/openclash" -E UTF-8 -e "$RUBY_YAML_PARSE" 2>/dev/null
 }
 
 CFG_FILE="/etc/config/openclash"
@@ -168,13 +168,14 @@ do
    uci_set="uci -q set $name.$uci_name_tmp."
    uci_add="uci -q add_list $name.$uci_name_tmp."
    
+   ${uci_set}enabled="1"
    ${uci_set}config="$CONFIG_NAME"
    ${uci_set}name="$group_name"
    ${uci_set}old_name="$group_name"
    ${uci_set}old_name_cfg="$group_name"
    ${uci_set}type="$group_type"
 
-   ruby -ryaml -E UTF-8 -e "
+   ruby -ryaml -rYAML -I "/usr/share/openclash" -E UTF-8 -e "
    begin
    Value = ${group_hash};
    Thread.new{
@@ -218,6 +219,14 @@ do
    }.join;
    
    Thread.new{
+   #Policy Filter
+   if Value['proxy-groups'][$count].key?('filter') then
+      policy_filter = '${uci_set}policy_filter=' + Value['proxy-groups'][$count]['filter'].to_s
+      system(policy_filter)
+   end
+   }.join;
+   
+   Thread.new{
    #interface-name
    if Value['proxy-groups'][$count].key?('interface-name') then
       interface_name = '${uci_set}interface_name=' + Value['proxy-groups'][$count]['interface-name'].to_s
@@ -247,7 +256,7 @@ do
 	 end
 	 }.join;
    rescue Exception => e
-   puts '${LOGTIME} Error: Resolve Proxy-group Error,【${CONFIG_NAME} - ${group_type} - ${group_name}: ' + e.message + '】'
+   puts '${LOGTIME} Error: Resolve Groups Failed,【${CONFIG_NAME} - ${group_type} - ${group_name}: ' + e.message + '】'
    end
    " 2>/dev/null >> $LOG_FILE &
    

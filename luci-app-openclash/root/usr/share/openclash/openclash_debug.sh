@@ -35,12 +35,13 @@ core_type=$(uci -q get openclash.config.core_version)
 cpu_model=$(opkg status libc 2>/dev/null |grep 'Architecture' |awk -F ': ' '{print $2}' 2>/dev/null)
 core_version=$(/etc/openclash/core/clash -v 2>/dev/null |awk -F ' ' '{print $2}' 2>/dev/null)
 core_tun_version=$(/etc/openclash/core/clash_tun -v 2>/dev/null |awk -F ' ' '{print $2}' 2>/dev/null)
+core_meta_version=$(/etc/openclash/core/clash_meta -v 2>/dev/null |awk -F ' ' '{print $3}' 2>/dev/null)
 servers_update=$(uci -q get openclash.config.servers_update)
 mix_proxies=$(uci -q get openclash.config.mix_proxies)
-op_version=$(sed -n 1p /usr/share/openclash/res/openclash_version)
+op_version=$(opkg status luci-app-openclash 2>/dev/null |grep 'Version' |awk -F 'Version: ' '{print "v"$2}')
 china_ip_route=$(uci -q get openclash.config.china_ip_route)
 common_ports=$(uci -q get openclash.config.common_ports)
-dns_remote=$(uci -q -q get openclash.config.dns_remote)
+router_self_proxy=$(uci -q get openclash.config.router_self_proxy)
 
 if [ -z "$RAW_CONFIG_FILE" ] || [ ! -f "$RAW_CONFIG_FILE" ]; then
 	CONFIG_NAME=$(ls -lt /etc/openclash/config/ | grep -E '.yaml|.yml' | head -n 1 |awk '{print $9}')
@@ -66,6 +67,17 @@ ts_re()
 	else
 	   echo "已安装"
   fi
+}
+
+dns_re()
+{
+   if [ "$1" = "1" ]; then
+	   echo "Dnsmasq 转发"
+   elif [ "$1" = "2" ]; then
+	   echo "Firewall 转发"
+   else
+      echo "停用"
+   fi
 }
 
 echo "OpenClash 调试日志" > "$DEBUG_LOG"
@@ -107,19 +119,31 @@ curl: $(ts_re "$(opkg status curl 2>/dev/null |grep 'Status' |awk -F ': ' '{prin
 ca-certificates: $(ts_re "$(opkg status ca-certificates 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
 ipset: $(ts_re "$(opkg status ipset 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
 ip-full: $(ts_re "$(opkg status ip-full 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
-iptables-mod-tproxy: $(ts_re "$(opkg status iptables-mod-tproxy 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
-kmod-ipt-tproxy: $(ts_re "$(opkg status kmod-ipt-tproxy 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
-iptables-mod-extra: $(ts_re "$(opkg status iptables-mod-extra 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
-kmod-ipt-extra: $(ts_re "$(opkg status kmod-ipt-extra 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
 libcap: $(ts_re "$(opkg status libcap 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
 libcap-bin: $(ts_re "$(opkg status libcap-bin 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
 ruby: $(ts_re "$(opkg status ruby 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
 ruby-yaml: $(ts_re "$(opkg status ruby-yaml 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
 ruby-psych: $(ts_re "$(opkg status ruby-psych 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
 ruby-pstore: $(ts_re "$(opkg status ruby-pstore 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
-ruby-dbm: $(ts_re "$(opkg status ruby-dbm 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
 kmod-tun(TUN模式): $(ts_re "$(opkg status kmod-tun 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
-luci-compat(Luci-19.07): $(ts_re "$(opkg status luci-compat 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+luci-compat(Luci >= 19.07): $(ts_re "$(opkg status luci-compat 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+kmod-inet-diag(PROCESS-NAME): $(ts_re "$(opkg status kmod-inet-diag 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+unzip: $(ts_re "$(opkg status unzip 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+EOF
+if [ -n "$(command -v fw4)" ]; then
+cat >> "$DEBUG_LOG" <<-EOF
+kmod-nft-tproxy: $(ts_re "$(opkg status kmod-nft-tproxy 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+EOF
+else
+cat >> "$DEBUG_LOG" <<-EOF
+iptables-mod-tproxy: $(ts_re "$(opkg status iptables-mod-tproxy 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+kmod-ipt-tproxy: $(ts_re "$(opkg status kmod-ipt-tproxy 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+iptables-mod-extra: $(ts_re "$(opkg status iptables-mod-extra 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+kmod-ipt-extra: $(ts_re "$(opkg status kmod-ipt-extra 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+kmod-ipt-nat: $(ts_re "$(opkg status kmod-ipt-nat 2>/dev/null |grep 'Status' |awk -F ': ' '{print $2}' 2>/dev/null)")
+EOF
+fi
+
 EOF
 
 #core
@@ -196,6 +220,30 @@ fi
 
 cat >> "$DEBUG_LOG" <<-EOF
 
+Meta内核版本: $core_meta_version
+EOF
+
+if [ ! -f "/etc/openclash/core/clash_meta" ]; then
+cat >> "$DEBUG_LOG" <<-EOF
+Meta内核文件: 不存在
+EOF
+else
+cat >> "$DEBUG_LOG" <<-EOF
+Meta内核文件: 存在
+EOF
+fi
+if [ ! -x "/etc/openclash/core/clash_meta" ]; then
+cat >> "$DEBUG_LOG" <<-EOF
+Meta内核运行权限: 否
+EOF
+else
+cat >> "$DEBUG_LOG" <<-EOF
+Meta内核运行权限: 正常
+EOF
+fi
+
+cat >> "$DEBUG_LOG" <<-EOF
+
 #===================== 插件设置 =====================#
 
 当前配置文件: $RAW_CONFIG_FILE
@@ -203,7 +251,7 @@ cat >> "$DEBUG_LOG" <<-EOF
 运行模式: $en_mode
 默认代理模式: $proxy_mode
 UDP流量转发(tproxy): $(ts_cf "$enable_udp_proxy")
-DNS劫持: $(ts_cf "$enable_redirect_dns")
+DNS劫持: $(dns_re "$enable_redirect_dns")
 自定义DNS: $(ts_cf "$enable_custom_dns")
 IPV6代理: $(ts_cf "$ipv6_enable")
 IPV6-DNS解析: $(ts_cf "$ipv6_dns")
@@ -213,7 +261,7 @@ IPV6-DNS解析: $(ts_cf "$ipv6_dns")
 仅代理命中规则流量: $(ts_cf "$enable_rule_proxy")
 仅允许常用端口流量: $(ts_cf "$common_ports")
 绕过中国大陆IP: $(ts_cf "$china_ip_route")
-DNS远程解析: $(ts_cf "$dns_remote")
+路由本机代理: $(ts_cf "$router_self_proxy")
 
 #启动异常时建议关闭此项后重试
 混合节点: $(ts_cf "$mix_proxies")
@@ -257,7 +305,15 @@ sed -i '/^ \{0,\}secret:/d' "$DEBUG_LOG" 2>/dev/null
 #firewall
 cat >> "$DEBUG_LOG" <<-EOF
 
-#===================== 防火墙设置 =====================#
+#===================== 自定义防火墙设置 =====================#
+
+EOF
+
+cat /etc/openclash/custom/openclash_custom_firewall_rules.sh >> "$DEBUG_LOG" 2>/dev/null
+
+cat >> "$DEBUG_LOG" <<-EOF
+
+#===================== IPTABLES 防火墙设置 =====================#
 
 #IPv4 NAT chain
 
@@ -273,6 +329,13 @@ iptables-save -t mangle >> "$DEBUG_LOG" 2>/dev/null
 
 cat >> "$DEBUG_LOG" <<-EOF
 
+#IPv4 Filter chain
+
+EOF
+iptables-save -t filter >> "$DEBUG_LOG" 2>/dev/null
+
+cat >> "$DEBUG_LOG" <<-EOF
+
 #IPv6 NAT chain
 
 EOF
@@ -284,6 +347,27 @@ cat >> "$DEBUG_LOG" <<-EOF
 
 EOF
 ip6tables-save -t mangle >> "$DEBUG_LOG" 2>/dev/null
+
+cat >> "$DEBUG_LOG" <<-EOF
+
+#IPv6 Filter chain
+
+EOF
+ip6tables-save -t filter >> "$DEBUG_LOG" 2>/dev/null
+
+if [ -n "$(command -v fw4)" ]; then
+cat >> "$DEBUG_LOG" <<-EOF
+
+#===================== NFTABLES 防火墙设置 =====================#
+
+EOF
+   for nft in "input" "forward" "dstnat" "srcnat" "nat_output" "mangle_prerouting" "mangle_output"; do
+      nft list chain inet fw4 "$nft" >> "$DEBUG_LOG" 2>/dev/null
+   done >/dev/null 2>&1
+   for nft in "openclash" "openclash_mangle" "openclash_mangle_output" "openclash_output" "openclash_post" "openclash_wan_input" "openclash_dns_hijack" "openclash_mangle_v6" "openclash_mangle_output_v6" "openclash_post_v6" "openclash_wan6_input"; do
+      nft list chain inet fw4 "$nft" >> "$DEBUG_LOG" 2>/dev/null
+   done >/dev/null 2>&1
+fi
 
 cat >> "$DEBUG_LOG" <<-EOF
 
@@ -322,10 +406,17 @@ netstat -nlp |grep clash >> "$DEBUG_LOG" 2>/dev/null
 
 cat >> "$DEBUG_LOG" <<-EOF
 
-#===================== 测试本机DNS查询 =====================#
+#===================== 测试本机DNS查询(www.baidu.com) =====================#
 
 EOF
 nslookup www.baidu.com >> "$DEBUG_LOG" 2>/dev/null
+
+cat >> "$DEBUG_LOG" <<-EOF
+
+#===================== 测试内核DNS查询(www.instagram.com) =====================#
+
+EOF
+/usr/share/openclash/openclash_debug_dns.lua "www.instagram.com" >> "$DEBUG_LOG" 2>/dev/null
 
 if [ -s "/tmp/resolv.conf.auto" ]; then
 cat >> "$DEBUG_LOG" <<-EOF
@@ -347,21 +438,21 @@ fi
 
 cat >> "$DEBUG_LOG" <<-EOF
 
-#===================== 测试本机网络连接 =====================#
+#===================== 测试本机网络连接(www.baidu.com) =====================#
 
 EOF
-curl -I -m 5 www.baidu.com >> "$DEBUG_LOG" 2>/dev/null
+curl -SsI -m 5 www.baidu.com >> "$DEBUG_LOG" 2>/dev/null
 
 cat >> "$DEBUG_LOG" <<-EOF
 
-#===================== 测试本机网络下载 =====================#
+#===================== 测试本机网络下载(raw.githubusercontent.com) =====================#
 
 EOF
 VERSION_URL="https://raw.githubusercontent.com/vernesong/OpenClash/master/version"
 if pidof clash >/dev/null; then
-   curl -IL -m 3 --retry 2 "$VERSION_URL" >> "$DEBUG_LOG" 2>/dev/null
+   curl -SsIL -m 3 --retry 2 "$VERSION_URL" >> "$DEBUG_LOG" 2>/dev/null
 else
-   curl -IL -m 3 --retry 2 "$VERSION_URL" >> "$DEBUG_LOG" 2>/dev/null
+   curl -SsIL -m 3 --retry 2 "$VERSION_URL" >> "$DEBUG_LOG" 2>/dev/null
 fi
 
 cat >> "$DEBUG_LOG" <<-EOF
@@ -388,13 +479,15 @@ wan_ip6=$(/usr/share/openclash/openclash_get_network.lua "wanip6")
 
 if [ -n "$wan_ip" ]; then
 	for i in $wan_ip; do
-     sed -i "s/${wan_ip}/*WAN IP*/g" "$DEBUG_LOG" 2>/dev/null
+      wanip=$(echo "$i" |awk -F '.' '{print $1"."$2"."$3}')
+      sed -i "s/${wanip}/*WAN IP*/g" "$DEBUG_LOG" 2>/dev/null
   done
 fi
 
 if [ -n "$wan_ip6" ]; then
 	for i in $wan_ip6; do
-     sed -i "s/${wan_ip6}/*WAN IP*/g" "$DEBUG_LOG" 2>/dev/null
+      wanip=$(echo "$i" |awk -F: 'OFS=":",NF-=1')
+      sed -i "s/${wanip}/*WAN IP*/g" "$DEBUG_LOG" 2>/dev/null
   done
 fi
 

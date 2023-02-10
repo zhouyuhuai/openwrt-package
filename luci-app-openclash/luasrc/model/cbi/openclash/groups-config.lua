@@ -76,6 +76,7 @@ o.default = "false"
 o.rmempty = false
 
 o = s:option(Value, "test_url", translate("Test URL"))
+o:value("http://cp.cloudflare.com/generate_204")
 o:value("http://www.gstatic.com/generate_204")
 o:value("https://cp.cloudflare.com/generate_204")
 o.rmempty = false
@@ -94,6 +95,10 @@ o = s:option(Value, "tolerance", translate("Tolerance(ms)"))
 o.default = "150"
 o.rmempty = true
 o:depends("type", "url-test")
+
+o = s:option(Value, "policy_filter", translate("Policy Filter").." "..translate("(Only Meta Core)"))
+o.rmempty = true
+o.placeholder = "bgp|sg"
 
 -- [[ interface-name ]]--
 o = s:option(Value, "interface_name", translate("interface-name"))
@@ -139,4 +144,5 @@ o.write = function()
    luci.http.redirect(m.redirect)
 end
 
+m:append(Template("openclash/toolbar_show"))
 return m
